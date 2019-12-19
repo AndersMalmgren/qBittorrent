@@ -75,6 +75,8 @@ window.qBittorrent.DynamicTable = (function() {
             this.setupHeaderEvents();
             this.setupHeaderMenu();
             this.setSortedColumnIcon(this.sortedColumn, null, (this.reverseSort === '1'));
+            this.trackers = {};
+            this.trackerRequestQueue = [];
         },
 
         setupCommonEvents: function() {
@@ -1236,6 +1238,13 @@ window.qBittorrent.DynamicTable = (function() {
                     if (r == inactive)
                         return false;
                     break;
+                case 'notracker':
+                    if (!this.trackers.hasOwnProperty(row.rowId)) {
+                        this.queueTrackerStatusRequest(row.rowId);
+                        this.trackers[row.rowId] = false;
+                    }
+
+                    return this.trackers[row.rowId];
                 case 'errored':
                     if (state != 'error' && state != "unknown" && state != "missingFiles")
                         return false;
@@ -1284,6 +1293,38 @@ window.qBittorrent.DynamicTable = (function() {
                 return false;
 
             return true;
+        },
+
+        trackerStatusRequest: function () {
+            var hash = this.trackerRequestQueue[0];
+            var url = new URI('api/v2/torrents/trackers');
+            url.setData('hash', hash);
+
+            new Request.JSON({
+                url: url,
+                noCache: true,
+                method: 'get',
+                onSuccess: function (response) {
+                    var trackers = this.trackers;
+                    trackers[hash] = true;
+                    response.forEach(function (tracker) {
+                        if (tracker.status === 2) {
+                            trackers[hash] = false;
+                        }
+                    });
+                    this.trackerRequestQueue = this.trackerRequestQueue.filter(h => h != hash);
+                    if (this.trackerRequestQueue.length > 0) {
+                        this.trackerStatusRequest(this.trackerRequestQueue[0]);
+                    }
+                }.bind(this)
+            }).send();
+        },
+
+        queueTrackerStatusRequest: function (hash) {
+            this.trackerRequestQueue.push(hash);
+            if (this.trackerRequestQueue.length === 1) {
+                this.trackerStatusRequest();
+            }
         },
 
         getFilteredTorrentsNumber: function(filterName, categoryHash, tagHash) {
