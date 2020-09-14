@@ -43,6 +43,7 @@
 #include <QUrl>
 
 #include "base/bittorrent/downloadpriority.h"
+#include "base/bittorrent/infohash.h"
 #include "base/bittorrent/session.h"
 #include "base/bittorrent/torrenthandle.h"
 #include "base/preferences.h"
@@ -640,7 +641,7 @@ void PropertiesWidget::displayFilesListMenu(const QPoint &)
     // The selected torrent might have disappeared during exec()
     // so we just close menu when an appropriate model is reset
     connect(m_ui->filesList->model(), &QAbstractItemModel::modelAboutToBeReset
-            , menu, [&menu]()
+            , menu, [menu]()
     {
         menu->setActiveAction(nullptr);
         menu->close();
@@ -710,7 +711,7 @@ void PropertiesWidget::configure()
 
 void PropertiesWidget::askWebSeed()
 {
-    bool ok;
+    bool ok = false;
     // Ask user for a new url seed
     const QString urlSeed = AutoExpandableDialog::getText(this, tr("New URL seed", "New HTTP source"),
                                                            tr("New URL seed:"), QLineEdit::Normal,

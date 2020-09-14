@@ -100,7 +100,7 @@ QPointer<AutoDownloader> AutoDownloader::m_instance = nullptr;
 
 QString computeSmartFilterRegex(const QStringList &filters)
 {
-    return QString("(?:_|\\b)(?:%1)(?:_|\\b)").arg(filters.join(QString(")|(?:")));
+    return QString::fromLatin1("(?:_|\\b)(?:%1)(?:_|\\b)").arg(filters.join(QString(")|(?:")));
 }
 
 AutoDownloader::AutoDownloader()
@@ -435,7 +435,7 @@ void AutoDownloader::loadRules(const QByteArray &data)
 
 void AutoDownloader::loadRulesLegacy()
 {
-    const SettingsPtr settings = Profile::instance().applicationSettings(QStringLiteral("qBittorrent-rss"));
+    const SettingsPtr settings = Profile::instance()->applicationSettings(QStringLiteral("qBittorrent-rss"));
     const QVariantHash rules = settings->value(QStringLiteral("download_rules")).toHash();
     for (const QVariant &ruleVar : rules) {
         const auto rule = AutoDownloadRule::fromLegacyDict(ruleVar.toHash());

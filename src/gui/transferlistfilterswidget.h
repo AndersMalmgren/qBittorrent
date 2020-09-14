@@ -72,7 +72,7 @@ private slots:
     virtual void torrentAboutToBeDeleted(BitTorrent::TorrentHandle *const) = 0;
 };
 
-class StatusFilterWidget : public BaseFilterWidget
+class StatusFilterWidget final : public BaseFilterWidget
 {
     Q_OBJECT
     Q_DISABLE_COPY(StatusFilterWidget)
@@ -93,7 +93,7 @@ private:
     void torrentAboutToBeDeleted(BitTorrent::TorrentHandle *const) override;
 };
 
-class TrackerFiltersList : public BaseFilterWidget
+class TrackerFiltersList final : public BaseFilterWidget
 {
     Q_OBJECT
     Q_DISABLE_COPY(TrackerFiltersList)
@@ -126,7 +126,7 @@ private:
     QString trackerFromRow(int row) const;
     int rowFromTracker(const QString &tracker) const;
     QString getHost(const QString &tracker) const;
-    QStringList getHashes(int row);
+    QStringList getHashes(int row) const;
     void downloadFavicon(const QString &url);
 
     QHash<QString, QStringList> m_trackers;

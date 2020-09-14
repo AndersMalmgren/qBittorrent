@@ -165,7 +165,7 @@ void AppController::preferencesAction()
     data["ip_filter_enabled"] = session->isIPFilteringEnabled();
     data["ip_filter_path"] = Utils::Fs::toNativePath(session->IPFilterFile());
     data["ip_filter_trackers"] = session->isTrackerFilteringEnabled();
-    data["banned_IPs"] = session->bannedIPs().join("\n");
+    data["banned_IPs"] = session->bannedIPs().join('\n');
 
     // Speed
     // Global Rate Limits
@@ -231,7 +231,9 @@ void AppController::preferencesAction()
     QStringList authSubnetWhitelistStringList;
     for (const Utils::Net::Subnet &subnet : asConst(pref->getWebUiAuthSubnetWhitelist()))
         authSubnetWhitelistStringList << Utils::Net::subnetToString(subnet);
-    data["bypass_auth_subnet_whitelist"] = authSubnetWhitelistStringList.join("\n");
+    data["bypass_auth_subnet_whitelist"] = authSubnetWhitelistStringList.join('\n');
+    data["web_ui_max_auth_fail_count"] = pref->getWebUIMaxAuthFailCount();
+    data["web_ui_ban_duration"] = static_cast<int>(pref->getWebUIBanDuration().count());
     data["web_ui_session_timeout"] = pref->getWebUISessionTimeout();
     // Use alternative Web UI
     data["alternative_webui_enabled"] = pref->isAltWebUiEnabled();
@@ -239,7 +241,11 @@ void AppController::preferencesAction()
     // Security
     data["web_ui_clickjacking_protection_enabled"] = pref->isWebUiClickjackingProtectionEnabled();
     data["web_ui_csrf_protection_enabled"] = pref->isWebUiCSRFProtectionEnabled();
+    data["web_ui_secure_cookie_enabled"] = pref->isWebUiSecureCookieEnabled();
     data["web_ui_host_header_validation_enabled"] = pref->isWebUIHostHeaderValidationEnabled();
+    // Custom HTTP headers
+    data["web_ui_use_custom_http_headers_enabled"] = pref->isWebUICustomHTTPHeadersEnabled();
+    data["web_ui_custom_http_headers"] = pref->getWebUICustomHTTPHeaders();
     // Update my dynamic domain name
     data["dyndns_enabled"] = pref->isDynDNSEnabled();
     data["dyndns_service"] = pref->getDynDNSService();
@@ -252,6 +258,8 @@ void AppController::preferencesAction()
     data["rss_max_articles_per_feed"] = RSS::Session::instance()->maxArticlesPerFeed();
     data["rss_processing_enabled"] = RSS::Session::instance()->isProcessingEnabled();
     data["rss_auto_downloading_enabled"] = RSS::AutoDownloader::instance()->isProcessingEnabled();
+    data["rss_download_repack_proper_episodes"] = RSS::AutoDownloader::instance()->downloadRepacks();
+    data["rss_smart_episode_filters"] = RSS::AutoDownloader::instance()->smartEpisodeFilters().join('\n');
 
     // Advanced settings
     // qBitorrent preferences
@@ -280,6 +288,8 @@ void AppController::preferencesAction()
     data["enable_os_cache"] = session->useOSCache();
     // Coalesce reads & writes
     data["enable_coalesce_read_write"] = session->isCoalesceReadWriteEnabled();
+    // Piece Extent Affinity
+    data["enable_piece_extent_affinity"] = session->usePieceExtentAffinity();
     // Suggest mode
     data["enable_upload_suggestions"] = session->isSuggestModeEnabled();
     // Send buffer watermark
@@ -291,6 +301,8 @@ void AppController::preferencesAction()
     // Outgoing ports
     data["outgoing_ports_min"] = session->outgoingPortsMin();
     data["outgoing_ports_max"] = session->outgoingPortsMax();
+    // UPnP lease duration
+    data["upnp_lease_duration"] = session->UPnPLeaseDuration();
     // uTP-TCP mixed mode
     data["utp_tcp_mixed_mode"] = static_cast<int>(session->utpMixedMode());
     // Multiple connections per IP
@@ -302,12 +314,12 @@ void AppController::preferencesAction()
     data["upload_slots_behavior"] = static_cast<int>(session->chokingAlgorithm());
     // Seed choking algorithm
     data["upload_choking_algorithm"] = static_cast<int>(session->seedChokingAlgorithm());
-    // Super seeding
-    data["enable_super_seeding"] = session->isSuperSeedingEnabled();
     // Announce
     data["announce_to_all_trackers"] = session->announceToAllTrackers();
     data["announce_to_all_tiers"] = session->announceToAllTiers();
     data["announce_ip"] = session->announceIP();
+    // Stop tracker timeout
+    data["stop_tracker_timeout"] = session->stopTrackerTimeout();
 
     setResult(data);
 }
@@ -473,7 +485,7 @@ void AppController::setPreferencesAction()
     if (hasKey("ip_filter_trackers"))
         session->setTrackerFilteringEnabled(it.value().toBool());
     if (hasKey("banned_IPs"))
-        session->setBannedIPs(it.value().toString().split('\n'));
+        session->setBannedIPs(it.value().toString().split('\n', QString::SkipEmptyParts));
 
     // Speed
     // Global Rate Limits
@@ -596,6 +608,10 @@ void AppController::setPreferencesAction()
         // recognize new lines and commas as delimiters
         pref->setWebUiAuthSubnetWhitelist(it.value().toString().split(QRegularExpression("\n|,"), QString::SkipEmptyParts));
     }
+    if (hasKey("web_ui_max_auth_fail_count"))
+        pref->setWebUIMaxAuthFailCount(it.value().toInt());
+    if (hasKey("web_ui_ban_duration"))
+        pref->setWebUIBanDuration(std::chrono::seconds {it.value().toInt()});
     if (hasKey("web_ui_session_timeout"))
         pref->setWebUISessionTimeout(it.value().toInt());
     // Use alternative Web UI
@@ -608,8 +624,15 @@ void AppController::setPreferencesAction()
         pref->setWebUiClickjackingProtectionEnabled(it.value().toBool());
     if (hasKey("web_ui_csrf_protection_enabled"))
         pref->setWebUiCSRFProtectionEnabled(it.value().toBool());
+    if (hasKey("web_ui_secure_cookie_enabled"))
+        pref->setWebUiSecureCookieEnabled(it.value().toBool());
     if (hasKey("web_ui_host_header_validation_enabled"))
         pref->setWebUIHostHeaderValidationEnabled(it.value().toBool());
+    // Custom HTTP headers
+    if (hasKey("web_ui_use_custom_http_headers_enabled"))
+        pref->setWebUICustomHTTPHeadersEnabled(it.value().toBool());
+    if (hasKey("web_ui_custom_http_headers"))
+        pref->setWebUICustomHTTPHeaders(it.value().toString());
     // Update my dynamic domain name
     if (hasKey("dyndns_enabled"))
         pref->setDynDNSEnabled(it.value().toBool());
@@ -630,6 +653,10 @@ void AppController::setPreferencesAction()
         RSS::Session::instance()->setProcessingEnabled(it.value().toBool());
     if (hasKey("rss_auto_downloading_enabled"))
         RSS::AutoDownloader::instance()->setProcessingEnabled(it.value().toBool());
+    if (hasKey("rss_download_repack_proper_episodes"))
+        RSS::AutoDownloader::instance()->setDownloadRepacks(it.value().toBool());
+    if (hasKey("rss_smart_episode_filters"))
+        RSS::AutoDownloader::instance()->setSmartEpisodeFilters(it.value().toString().split('\n'));
 
     // Advanced settings
     // qBittorrent preferences
@@ -644,8 +671,8 @@ void AppController::setPreferencesAction()
         });
         const QString ifaceName = (ifacesIter != ifaces.cend()) ? ifacesIter->humanReadableName() : QString {};
 
-	    session->setNetworkInterface(ifaceValue);
-	    session->setNetworkInterfaceName(ifaceName);
+        session->setNetworkInterface(ifaceValue);
+        session->setNetworkInterfaceName(ifaceName);
     }
     // Current network interface address
     if (hasKey("current_interface_address")) {
@@ -683,6 +710,9 @@ void AppController::setPreferencesAction()
     // Coalesce reads & writes
     if (hasKey("enable_coalesce_read_write"))
         session->setCoalesceReadWriteEnabled(it.value().toBool());
+    // Piece extent affinity
+    if (hasKey("enable_piece_extent_affinity"))
+        session->setPieceExtentAffinity(it.value().toBool());
     // Suggest mode
     if (hasKey("enable_upload_suggestions"))
         session->setSuggestMode(it.value().toBool());
@@ -701,6 +731,9 @@ void AppController::setPreferencesAction()
         session->setOutgoingPortsMin(it.value().toInt());
     if (hasKey("outgoing_ports_max"))
         session->setOutgoingPortsMax(it.value().toInt());
+    // UPnP lease duration
+    if (hasKey("upnp_lease_duration"))
+        session->setUPnPLeaseDuration(it.value().toInt());
     // uTP-TCP mixed mode
     if (hasKey("utp_tcp_mixed_mode"))
         session->setUtpMixedMode(static_cast<BitTorrent::MixedModeAlgorithm>(it.value().toInt()));
@@ -718,9 +751,6 @@ void AppController::setPreferencesAction()
     // Seed choking algorithm
     if (hasKey("upload_choking_algorithm"))
         session->setSeedChokingAlgorithm(static_cast<BitTorrent::SeedChokingAlgorithm>(it.value().toInt()));
-    // Super seeding
-    if (hasKey("enable_super_seeding"))
-        session->setSuperSeedingEnabled(it.value().toBool());
     // Announce
     if (hasKey("announce_to_all_trackers"))
         session->setAnnounceToAllTrackers(it.value().toBool());
@@ -730,6 +760,9 @@ void AppController::setPreferencesAction()
         const QHostAddress announceAddr {it.value().toString().trimmed()};
         session->setAnnounceIP(announceAddr.isNull() ? QString {} : announceAddr.toString());
     }
+    // Stop tracker timeout
+    if (hasKey("stop_tracker_timeout"))
+        session->setStopTrackerTimeout(it.value().toInt());
 
     // Save preferences
     pref->apply();

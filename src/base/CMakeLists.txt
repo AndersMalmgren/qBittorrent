@@ -12,6 +12,8 @@ bittorrent/peerinfo.h
 bittorrent/private/bandwidthscheduler.h
 bittorrent/private/filterparserthread.h
 bittorrent/private/ltunderlyingtype.h
+bittorrent/private/nativesessionextension.h
+bittorrent/private/nativetorrentextension.h
 bittorrent/private/portforwarderimpl.h
 bittorrent/private/resumedatasavingmanager.h
 bittorrent/private/speedmonitor.h
@@ -20,6 +22,7 @@ bittorrent/session.h
 bittorrent/sessionstatus.h
 bittorrent/torrentcreatorthread.h
 bittorrent/torrenthandle.h
+bittorrent/torrenthandleimpl.h
 bittorrent/torrentinfo.h
 bittorrent/tracker.h
 bittorrent/trackerentry.h
@@ -56,6 +59,7 @@ utils/bytearray.h
 utils/foreignapps.h
 utils/fs.h
 utils/gzip.h
+utils/io.h
 utils/misc.h
 utils/net.h
 utils/password.h
@@ -88,6 +92,8 @@ bittorrent/peeraddress.cpp
 bittorrent/peerinfo.cpp
 bittorrent/private/bandwidthscheduler.cpp
 bittorrent/private/filterparserthread.cpp
+bittorrent/private/nativesessionextension.cpp
+bittorrent/private/nativetorrentextension.cpp
 bittorrent/private/portforwarderimpl.cpp
 bittorrent/private/resumedatasavingmanager.cpp
 bittorrent/private/speedmonitor.cpp
@@ -95,6 +101,7 @@ bittorrent/private/statistics.cpp
 bittorrent/session.cpp
 bittorrent/torrentcreatorthread.cpp
 bittorrent/torrenthandle.cpp
+bittorrent/torrenthandleimpl.cpp
 bittorrent/torrentinfo.cpp
 bittorrent/tracker.cpp
 bittorrent/trackerentry.cpp
@@ -129,6 +136,7 @@ utils/bytearray.cpp
 utils/foreignapps.cpp
 utils/fs.cpp
 utils/gzip.cpp
+utils/io.cpp
 utils/misc.cpp
 utils/net.cpp
 utils/password.cpp

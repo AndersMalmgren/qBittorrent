@@ -194,6 +194,10 @@ public:
     void setWebUiUsername(const QString &username);
     QByteArray getWebUIPassword() const;
     void setWebUIPassword(const QByteArray &password);
+    int getWebUIMaxAuthFailCount() const;
+    void setWebUIMaxAuthFailCount(int count);
+    std::chrono::seconds getWebUIBanDuration() const;
+    void setWebUIBanDuration(std::chrono::seconds duration);
     int getWebUISessionTimeout() const;
     void setWebUISessionTimeout(int timeout);
 
@@ -202,6 +206,8 @@ public:
     void setWebUiClickjackingProtectionEnabled(bool enabled);
     bool isWebUiCSRFProtectionEnabled() const;
     void setWebUiCSRFProtectionEnabled(bool enabled);
+    bool isWebUiSecureCookieEnabled () const;
+    void setWebUiSecureCookieEnabled(bool enabled);
     bool isWebUIHostHeaderValidationEnabled() const;
     void setWebUIHostHeaderValidationEnabled(bool enabled);
 
@@ -216,6 +222,12 @@ public:
     void setAltWebUiEnabled(bool enabled);
     QString getWebUiRootFolder() const;
     void setWebUiRootFolder(const QString &path);
+
+    // WebUI custom HTTP headers
+    bool isWebUICustomHTTPHeadersEnabled() const;
+    void setWebUICustomHTTPHeadersEnabled(bool enabled);
+    QString getWebUICustomHTTPHeaders() const;
+    void setWebUICustomHTTPHeaders(const QString &headers);
 
     // Dynamic DNS
     bool isDynDNSEnabled() const;
@@ -238,6 +250,10 @@ public:
     void setAutoRunEnabled(bool enabled);
     QString getAutoRunProgram() const;
     void setAutoRunProgram(const QString &program);
+#if defined(Q_OS_WIN) && (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+    bool isAutoRunConsoleEnabled() const;
+    void setAutoRunConsoleEnabled(bool enabled);
+#endif
     bool shutdownWhenDownloadsComplete() const;
     void setShutdownWhenDownloadsComplete(bool shutdown);
     bool suspendWhenDownloadsComplete() const;

@@ -28,6 +28,8 @@
 
 #include "peerinfo.h"
 
+#include <libtorrent/version.hpp>
+
 #include <QBitArray>
 
 #include "base/bittorrent/torrenthandle.h"
@@ -207,12 +209,17 @@ qlonglong PeerInfo::totalDownload() const
 
 QBitArray PeerInfo::pieces() const
 {
+#if (LIBTORRENT_VERSION_NUM < 10200)
+    using PieceIndex = int;
+#else
+    using PieceIndex = lt::piece_index_t;
+#endif
+
     QBitArray result(m_nativeInfo.pieces.size());
-
-    int i = 0;
-    for (const bool bit : m_nativeInfo.pieces)
-        result.setBit(i++, bit);
-
+    for (int i = 0; i < result.size(); ++i) {
+        if (m_nativeInfo.pieces[PieceIndex {i}])
+            result.setBit(i, true);
+    }
     return result;
 }
 

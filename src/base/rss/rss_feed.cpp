@@ -124,7 +124,7 @@ void Feed::markAsRead()
 
 void Feed::refresh()
 {
-    if (isLoading())
+    if (m_downloadHandler)
         m_downloadHandler->cancel();
 
     // NOTE: Should we allow manually refreshing for disabled session?
@@ -193,6 +193,8 @@ bool Feed::hasError() const
 
 void Feed::handleDownloadFinished(const Net::DownloadResult &result)
 {
+    m_downloadHandler = nullptr; // will be deleted by DownloadManager later
+
     if (result.status == Net::DownloadStatus::Success) {
         LogMsg(tr("RSS feed at '%1' is successfully downloaded. Starting to parse it.")
                 .arg(result.url));
@@ -299,7 +301,7 @@ void Feed::loadArticles(const QByteArray &data)
 
 void Feed::loadArticlesLegacy()
 {
-    const SettingsPtr qBTRSSFeeds = Profile::instance().applicationSettings(QStringLiteral("qBittorrent-rss-feeds"));
+    const SettingsPtr qBTRSSFeeds = Profile::instance()->applicationSettings(QStringLiteral("qBittorrent-rss-feeds"));
     const QVariantHash allOldItems = qBTRSSFeeds->value("old_items").toHash();
 
     for (const QVariant &var : asConst(allOldItems.value(m_url).toList())) {
@@ -398,7 +400,7 @@ void Feed::downloadIcon()
     // Download the RSS Feed icon
     // XXX: This works for most sites but it is not perfect
     const QUrl url(m_url);
-    const auto iconUrl = QString("%1://%2/favicon.ico").arg(url.scheme(), url.host());
+    const auto iconUrl = QString::fromLatin1("%1://%2/favicon.ico").arg(url.scheme(), url.host());
     Net::DownloadManager::instance()->download(
             Net::DownloadRequest(iconUrl).saveToFile(true)
                 , this, &Feed::handleIconDownloadFinished);

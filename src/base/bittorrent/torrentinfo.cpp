@@ -32,6 +32,8 @@
 #include <boost/optional.hpp>
 #endif
 
+#include <libtorrent/bencode.hpp>
+#include <libtorrent/create_torrent.hpp>
 #include <libtorrent/error_code.hpp>
 
 #include <QByteArray>
@@ -42,8 +44,10 @@
 #include <QStringList>
 #include <QUrl>
 
+#include "base/exceptions.h"
 #include "base/global.h"
 #include "base/utils/fs.h"
+#include "base/utils/io.h"
 #include "base/utils/misc.h"
 #include "infohash.h"
 #include "trackerentry.h"
@@ -149,6 +153,27 @@ TorrentInfo TorrentInfo::loadFromFile(const QString &path, QString *error) noexc
     file.close();
 
     return load(data, error);
+}
+
+void TorrentInfo::saveToFile(const QString &path) const
+{
+    if (!isValid())
+        throw RuntimeError {tr("Invalid metadata.")};
+
+#if (LIBTORRENT_VERSION_NUM < 10200)
+    const lt::create_torrent torrentCreator = lt::create_torrent(*(nativeInfo()), true);
+#else
+    const lt::create_torrent torrentCreator = lt::create_torrent(*(nativeInfo()));
+#endif
+    const lt::entry torrentEntry = torrentCreator.generate();
+
+    QFile torrentFile {path};
+    if (!torrentFile.open(QIODevice::WriteOnly))
+        throw RuntimeError {torrentFile.errorString()};
+
+    lt::bencode(Utils::IO::FileDeviceOutputIterator {torrentFile}, torrentEntry);
+    if (torrentFile.error() != QFileDevice::NoError)
+        throw RuntimeError {torrentFile.errorString()};
 }
 
 bool TorrentInfo::isValid() const

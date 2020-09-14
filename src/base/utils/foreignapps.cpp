@@ -190,9 +190,17 @@ namespace
                     path = getRegValue(hkInstallPath);
                     ::RegCloseKey(hkInstallPath);
 
-                    if (!path.isEmpty() && QDir(path).exists("python.exe")) {
-                        found = true;
-                        path = QDir(path).filePath("python.exe");
+                    if (!path.isEmpty()) {
+                        const QDir baseDir {path};
+
+                        if (baseDir.exists("python3.exe")) {
+                            found = true;
+                            path = baseDir.filePath("python3.exe");
+                        }
+                        else if (baseDir.exists("python.exe")) {
+                            found = true;
+                            path = baseDir.filePath("python.exe");
+                        }
                     }
                 }
             }
@@ -223,9 +231,13 @@ namespace
         // Fallback: Detect python from default locations
         const QFileInfoList dirs = QDir("C:/").entryInfoList({"Python*"}, QDir::Dirs, (QDir::Name | QDir::Reversed));
         for (const QFileInfo &info : dirs) {
-            const QString path {info.absolutePath() + "/python.exe"};
-            if (QFile::exists(path))
-                return path;
+            const QString py3Path {info.absolutePath() + "/python3.exe"};
+            if (QFile::exists(py3Path))
+                return py3Path;
+
+            const QString pyPath {info.absolutePath() + "/python.exe"};
+            if (QFile::exists(pyPath))
+                return pyPath;
         }
 
         return {};
@@ -240,26 +252,16 @@ bool Utils::ForeignApps::PythonInfo::isValid() const
 
 bool Utils::ForeignApps::PythonInfo::isSupportedVersion() const
 {
-    const int majorVer = version.majorNumber();
-    return ((majorVer > 3)
-        || ((majorVer == 3) && (version >= Version {3, 3, 0}))
-        || ((majorVer == 2) && (version >= Version {2, 7, 9})));
+    return (version >= Version {3, 3, 0});
 }
 
 PythonInfo Utils::ForeignApps::pythonInfo()
 {
     static PythonInfo pyInfo;
     if (!pyInfo.isValid()) {
-#if defined(Q_OS_UNIX)
-        // On Unix-Like Systems python2 and python3 should always exist
-        // https://www.python.org/dev/peps/pep-0394/
         if (testPythonInstallation("python3", pyInfo))
             return pyInfo;
-        if (testPythonInstallation("python2", pyInfo))
-            return pyInfo;
-#endif
-        // Look for "python" in Windows and in UNIX if "python2" and "python3" are
-        // not detected.
+
         if (testPythonInstallation("python", pyInfo))
             return pyInfo;
 
