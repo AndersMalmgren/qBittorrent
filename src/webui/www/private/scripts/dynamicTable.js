@@ -1255,7 +1255,8 @@ window.qBittorrent.DynamicTable = (function() {
                         this.trackers[row.rowId] = false;
                     }
 
-                    return this.trackers[row.rowId];
+                    if (!this.trackers[row.rowId]) return false;
+                    break;	
                 case 'errored':
                     if (state != 'error' && state != "unknown" && state != "missingFiles")
                         return false;
